@@ -3,6 +3,8 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 class MassiveMinerGenerator {
+    static TOTAL_ADDRESSES = 614;
+
     constructor() {
         // Les 10+ pools majeurs de 2026 [citation:2][citation:5][citation:8]
         this.pools = [
@@ -73,11 +75,11 @@ class MassiveMinerGenerator {
         return address;
     }
 
-    // Générer les 614 adresses
+    // Générer les adresses
     generateAllAddresses() {
         const addresses = [];
-        const addressesPerPool = Math.floor(614 / this.totalPools);
-        let remaining = 614 - (addressesPerPool * this.totalPools);
+        const addressesPerPool = Math.floor(MassiveMinerGenerator.TOTAL_ADDRESSES / this.totalPools);
+        let remaining = MassiveMinerGenerator.TOTAL_ADDRESSES - (addressesPerPool * this.totalPools);
 
         for (let poolIdx = 0; poolIdx < this.totalPools; poolIdx++) {
             const pool = this.pools[poolIdx];
@@ -106,7 +108,7 @@ class MassiveMinerGenerator {
     generateConfig() {
         const config = {
             generated: new Date().toISOString(),
-            totalAddresses: 614,
+            totalAddresses: MassiveMinerGenerator.TOTAL_ADDRESSES,
             totalPools: this.totalPools,
             pools: this.pools,
             addresses: this.generateAllAddresses(),
