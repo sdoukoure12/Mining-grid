@@ -1,0 +1,21 @@
+[Unit]
+Description=Mining-Grid Health Monitor Service
+Documentation=https://github.com/sdoukoure12/Mining-grid
+After=mining-grid.service
+Requires=mining-grid.service
+
+[Service]
+Type=oneshot
+User=mining-grid
+Group=mining-grid
+WorkingDirectory=/opt/mining-grid
+
+ExecStart=/bin/bash /opt/mining-grid/scripts/health-check.sh
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mining-grid-monitor
+
+[Install]
+WantedBy=multi-user.target
