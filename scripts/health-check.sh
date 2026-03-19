@@ -96,7 +96,10 @@ check_miners_endpoint() {
 
 # 4. Mining pool connectivity
 check_pool_connectivity() {
-  local pools=("pool.bitcoin.com:3333" "stratum.slushpool.com:3333")
+  local pools=(
+    "${MINING_POOL_1:-pool.bitcoin.com:3333}"
+    "${MINING_POOL_2:-stratum.slushpool.com:3333}"
+  )
   local reachable=0
   for pool in "${pools[@]}"; do
     local host="${pool%%:*}"
@@ -120,8 +123,14 @@ check_pool_connectivity() {
 # 5. Resource usage
 check_resources() {
   # Memory (RSS) of the node process
-  local pid
-  pid=$(pgrep -f "node.*server.js" | head -1 || echo "")
+  # Use PID file if available; fall back to a specific process pattern
+  local pid=""
+  if [ -f /tmp/mining-grid.pid ]; then
+    pid=$(cat /tmp/mining-grid.pid 2>/dev/null || echo "")
+    kill -0 "$pid" 2>/dev/null || pid=""
+  fi
+  [ -z "$pid" ] && pid=$(pgrep -f "node ${ROOT_DIR}/server.js" | head -1 || echo "")
+  [ -z "$pid" ] && pid=$(pgrep -f "node.*server.js" | head -1 || echo "")
   if [ -n "$pid" ]; then
     local rss_kb
     rss_kb=$(ps -o rss= -p "$pid" 2>/dev/null || echo 0)

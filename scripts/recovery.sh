@@ -52,9 +52,14 @@ stop_service() {
     return 0
   fi
 
-  # Bare process
-  local pid
-  pid=$(pgrep -f "node.*server.js" | head -1 || echo "")
+  # Bare process – use PID file if available for specificity
+  local pid=""
+  if [ -f /tmp/mining-grid.pid ]; then
+    pid=$(cat /tmp/mining-grid.pid 2>/dev/null || echo "")
+    kill -0 "$pid" 2>/dev/null || pid=""
+  fi
+  [ -z "$pid" ] && pid=$(pgrep -f "node ${ROOT_DIR}/server.js" | head -1 || echo "")
+  [ -z "$pid" ] && pid=$(pgrep -f "node.*server.js" | head -1 || echo "")
   if [ -n "$pid" ]; then
     kill -SIGTERM "$pid"
     sleep 3

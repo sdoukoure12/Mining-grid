@@ -51,10 +51,10 @@ pre_restart() {
     log WARN "Could not capture pre-restart stats (service may already be down)"
   fi
 
-  # Record active miners count
+  # Record active miners count using node (avoids python3 dependency)
   local miners_count
   miners_count=$(curl -sf --max-time 5 "${api}/miners" 2>/dev/null \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d))" 2>/dev/null || echo "unknown")
+    | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.length);" 2>/dev/null || echo "unknown")
   log INFO "Active miners before restart: $miners_count"
 }
 

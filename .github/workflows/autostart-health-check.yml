@@ -15,6 +15,9 @@ jobs:
     name: Mining Grid Server Health Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
 
     steps:
       - name: Checkout repository
@@ -123,9 +126,11 @@ jobs:
 
       - name: Validate configuration
         run: |
-          echo "::group::Configuration validation"
+          echo "::group::Configuration validation – verifying expected repository files exist"
           node -e "
             const fs = require('fs');
+            // These are the required files for the Mining-Grid service to function correctly.
+            // If any are missing, the deployment is incomplete.
             const required = ['server.js','config/database.js','routes/minerRoute.js',
                               'controllers/minerController.js','services/minerService.js',
                               'models/Miner.js'];
@@ -134,7 +139,7 @@ jobs:
               if (fs.existsSync(f)) {
                 console.log('✅ ' + f);
               } else {
-                console.error('❌ Missing: ' + f);
+                console.error('❌ Missing required file: ' + f + ' – deployment may be incomplete');
                 ok = false;
               }
             }
@@ -161,6 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: health-check
     if: failure()
+    permissions: {}
     steps:
       - name: Send failure notification
         run: |

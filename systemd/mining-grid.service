@@ -18,8 +18,8 @@ Environment=NODE_ENV=production
 # Start command
 ExecStart=/usr/bin/node /opt/mining-grid/server.js
 
-# Pre-start: wait for MongoDB to be ready
-ExecStartPre=/bin/bash -c 'until mongosh --eval "db.adminCommand({ping:1})" --quiet; do sleep 1; done'
+# Pre-start: wait for MongoDB to be ready (max 60 seconds)
+ExecStartPre=/bin/bash -c 'i=0; until mongosh --eval "db.adminCommand({ping:1})" --quiet 2>/dev/null; do i=$((i+1)); [ $i -ge 60 ] && exit 1; sleep 1; done'
 
 # Graceful shutdown
 ExecStop=/bin/kill -SIGTERM $MAINPID

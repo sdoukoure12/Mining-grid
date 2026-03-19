@@ -32,16 +32,12 @@ log() {
   echo "[$ts] [$level] $*" | tee -a "$LOG_FILE" 2>/dev/null || echo "[$ts] [$level] $*"
 }
 
-# Prevent overlapping cron runs
-if [ -f "$LOCK_FILE" ]; then
-  lock_pid=$(cat "$LOCK_FILE" 2>/dev/null || echo "")
-  if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
-    log WARN "Another monitor instance (PID $lock_pid) is already running – exiting"
-    exit 0
-  fi
+# Prevent overlapping cron runs using flock for atomic locking
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  log WARN "Another monitor instance is already running – exiting"
+  exit 0
 fi
-echo $$ > "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE"' EXIT
 
 # ---------------------------------------------------------------------------
 # Read / write consecutive failure count
