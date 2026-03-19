@@ -1,0 +1,28 @@
+[Unit]
+Description=Mining Grid Health Monitor
+Documentation=https://github.com/sdoukoure12/Mining-grid
+After=network.target mining-grid.service
+Requires=mining-grid.service
+
+[Service]
+Type=simple
+User=mining-grid
+Group=mining-grid
+WorkingDirectory=/opt/mining-grid
+ExecStart=/bin/bash /opt/mining-grid/scripts/game-health-check.sh --daemon
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=120s
+StartLimitBurst=5
+
+# Environment
+Environment=NODE_ENV=production
+EnvironmentFile=-/opt/mining-grid/.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mining-grid-monitor
+
+[Install]
+WantedBy=multi-user.target
