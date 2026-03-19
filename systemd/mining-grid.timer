@@ -1,0 +1,13 @@
+[Unit]
+Description=Mining Grid Periodic Restart Timer
+Documentation=https://github.com/sdoukoure12/Mining-grid
+
+[Timer]
+# Run the restart check every 15 minutes
+OnBootSec=5min
+OnUnitActiveSec=15min
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

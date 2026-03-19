@@ -1,0 +1,83 @@
+name: Mining Server Auto-Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Recovery reason'
+        required: false
+        default: 'Manual trigger'
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  auto-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log recovery start
+        run: |
+          echo "🔄 Starting mining server recovery..."
+          echo "Reason: ${{ github.event.inputs.reason || 'Triggered by health check' }}"
+          echo "Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate server configuration
+        run: |
+          echo "Validating server configuration..."
+          node --input-type=module -e "
+            import('./configuration.js').then(() => {
+              console.log('✅ Configuration valid');
+            }).catch(err => {
+              console.error('❌ Configuration invalid:', err.message);
+              process.exit(1);
+            });
+          " || { echo '❌ Configuration check failed'; exit 1; }
+
+      - name: Run recovery script
+        run: |
+          chmod +x scripts/mining-recovery.sh
+          bash scripts/mining-recovery.sh
+
+      - name: Verify recovery
+        run: |
+          echo "Verifying server recovery..."
+          MAX_RETRIES=5
+          RETRY_INTERVAL=10
+          for i in $(seq 1 $MAX_RETRIES); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "${GAME_SERVER_URL:-http://localhost:3000}/api/health" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Recovery successful after $i attempt(s)"
+              exit 0
+            fi
+            echo "⏳ Attempt $i/$MAX_RETRIES failed (HTTP $STATUS), retrying in ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+          echo "❌ Recovery failed after $MAX_RETRIES attempts"
+          exit 1
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Mining server recovery failed. Manual intervention required."
+          echo "## ❌ Recovery Failed" >> $GITHUB_STEP_SUMMARY
+          echo "The auto-recovery process was unable to restore the mining server." >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs and restart the service manually." >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary on success
+        if: success()
+        run: |
+          echo "## ✅ Recovery Successful" >> $GITHUB_STEP_SUMMARY
+          echo "Mining server has been successfully recovered at $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
