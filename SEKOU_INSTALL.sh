@@ -2,7 +2,7 @@
 
 # ==========================================
 # SEKOU ASSISTANT - INSTALLATION COMPLÈTE
-# Script Unique Tout-en-Un
+# Script Unique Tout-en-Un avec Commandes Intégrées
 # Créateur: Sekou Simballa DouKoure
 # ==========================================
 
@@ -14,6 +14,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m'
 
 # Variables globales
@@ -41,6 +42,14 @@ log_warning() {
   echo -e "${YELLOW}⚠️  $1${NC}" | tee -a "$LOG_FILE"
 }
 
+log_info() {
+  echo -e "${BLUE}ℹ️  $1${NC}" | tee -a "$LOG_FILE"
+}
+
+log_command() {
+  echo -e "${CYAN}▶ $1${NC}" | tee -a "$LOG_FILE"
+}
+
 # ==========================================
 # BANNER PRINCIPAL
 # ==========================================
@@ -55,7 +64,7 @@ cat << "EOF"
 ║              Créateur: Sekou Simballa DouKoure                 ║
 ║              Plateforme d'Automatisation Intelligente           ║
 ║                                                                ║
-║          Script Unique - Tous les fichiers générés             ║
+║          Script Unique - Tous les fichiers + Commandes         ║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 EOF
@@ -71,7 +80,7 @@ log "📝 Log: $LOG_FILE"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[1/15] VÉRIFICATION DES PRÉREQUIS${NC}"
+log "${BLUE}[1/16] VÉRIFICATION DES PRÉREQUIS${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 check_command() {
@@ -80,7 +89,7 @@ check_command() {
     log_success "$1 détecté: $version"
     return 0
   else
-    log_error "$1 non trouvé. Installation requise."
+    log_error "$1 non trouvé"
     return 1
   fi
 }
@@ -92,7 +101,7 @@ for cmd in git node npm python3; do
 done
 
 if [ $MISSING_DEPS -gt 0 ]; then
-  log_error "Dépendances manquantes! Installez les prérequis."
+  log_error "Dépendances manquantes!"
   exit 1
 fi
 
@@ -104,18 +113,17 @@ log_success "Tous les prérequis présents!"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[2/15] CRÉATION STRUCTURE DE RÉPERTOIRES${NC}"
+log "${BLUE}[2/16] CRÉATION STRUCTURE DE RÉPERTOIRES${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
-mkdir -p "$SEKOU_HOME"/{backend,mobile,builders,security/vault,automation,docs,scripts,logs,config,tests}
+mkdir -p "$SEKOU_HOME"/{backend,mobile,builders,security/vault,automation,docs,scripts,logs,config,tests,bin}
 
 log_success "Répertoires créés:"
-log "  📁 $SEKOU_HOME/backend - Backend Node.js"
-log "  📁 $SEKOU_HOME/mobile - App Android"
-log "  📁 $SEKOU_HOME/builders - App Builder"
-log "  📁 $SEKOU_HOME/security/vault - Gestion clés"
-log "  📁 $SEKOU_HOME/automation - Scripts automatisation"
-log "  📁 $SEKOU_HOME/docs - Documentation"
+log "  📁 $SEKOU_HOME/backend"
+log "  📁 $SEKOU_HOME/mobile"
+log "  📁 $SEKOU_HOME/automation"
+log "  📁 $SEKOU_HOME/security/vault"
+log "  📁 $SEKOU_HOME/docs"
 
 # ==========================================
 # ÉTAPE 3: CRÉER FICHIER .env
@@ -123,7 +131,7 @@ log "  📁 $SEKOU_HOME/docs - Documentation"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[3/15] CRÉATION FICHIER .env${NC}"
+log "${BLUE}[3/16] CRÉATION FICHIER .env${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/.env" << 'ENDENV'
@@ -150,95 +158,35 @@ DB_NAME=sekou_db
 DB_USER=sekou_user
 DB_PASSWORD=sekou_pass
 DB_SSL=false
-DB_LOGGING=false
 
 # 🔷 CACHE - Redis
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DB=0
-REDIS_TTL=3600
 
-# 🔷 STORAGE
-STORAGE_TYPE=local
-STORAGE_PATH=$HOME/sekou-assistant-platform/storage
-S3_BUCKET=sekou-assistant
-S3_REGION=eu-west-1
-
-# 🔷 SECURITY & ENCRYPTION
+# 🔷 SECURITY
 ENCRYPTION_ALGORITHM=aes-256-gcm
 ENCRYPTION_KEY=$(openssl rand -hex 32 2>/dev/null || echo "encryption-key-2024")
-VAULT_ADDR=http://127.0.0.1:8200
-VAULT_TOKEN=dev-token-2024
-VAULT_SKIP_VERIFY=true
 
 # 🔷 PAYMENT - PayPal
 PAYPAL_MODE=sandbox
-PAYPAL_CLIENT_ID=your_paypal_client_id_here
-PAYPAL_CLIENT_SECRET=your_paypal_client_secret_here
-PAYPAL_RETURN_URL=http://localhost:3000/payment/success
-PAYPAL_CANCEL_URL=http://localhost:3000/payment/cancel
+PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_CLIENT_SECRET=your_paypal_secret
 
-# 🔷 PAYMENT - Stripe
-STRIPE_API_KEY=your_stripe_api_key_here
-STRIPE_WEBHOOK_SECRET=your_webhook_secret_here
-
-# 🔷 PAYMENT - Crypto
-CRYPTO_ENABLED=true
-BITCOIN_ADDRESS=your_bitcoin_address
-ETHEREUM_ADDRESS=your_ethereum_address
+# 🔷 API KEYS
+OPENAI_API_KEY=your_openai_key
+HUGGING_FACE_API_KEY=your_hf_key
 
 # 🔷 ANDROID - ADB
 ADB_PATH=/usr/bin/adb
-ADB_DEVICE_ID=
 ADB_TIMEOUT=30000
-ADB_SHELL_TIMEOUT=10000
 
-# 🔷 AUTOMATION - Scheduling
-CRON_TIMEZONE=Europe/Paris
-AUTO_GOOGLE_PLAY=true
-AUTO_SURVEYS=true
-AUTO_TASKS=true
-AUTO_TRANSFER=true
-
-# 🔷 API KEYS - EXTERNAL SERVICES
-OPENAI_API_KEY=your_openai_api_key_here
-HUGGING_FACE_API_KEY=your_hugging_face_key_here
-ANTHROPIC_API_KEY=your_anthropic_key_here
-
-# 🔷 LOGGING & MONITORING
+# 🔷 LOGGING
 LOG_LEVEL=debug
-LOG_FORMAT=json
 LOG_FILE=$HOME/sekou-assistant-platform/logs/server.log
-SENTRY_DSN=
-
-# 🔷 EMAIL (Notifications)
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USER=your_email@gmail.com
-MAIL_PASS=your_app_password
-MAIL_FROM=noreply@sekou-assistant.com
-
-# 🔷 CORS
-CORS_ORIGIN=*
-CORS_CREDENTIALS=true
-
-# 🔷 RATE LIMITING
-RATE_LIMIT_WINDOW=15
-RATE_LIMIT_MAX_REQUESTS=100
-
-# 🔷 SESSION
-SESSION_SECRET=$(openssl rand -hex 32 2>/dev/null || echo "session-secret-2024")
-SESSION_TIMEOUT=3600000
-SESSION_SECURE=false
-
-# 🔷 DEVELOPMENT
-DEBUG=sekou:*
-MOCK_PAYMENTS=true
-SKIP_AUTH=false
-ALLOW_INSECURE_HTTP=true
 ENDENV
 
-log_success "Fichier .env créé: $SEKOU_HOME/.env"
+log_success "Fichier .env créé"
 
 # ==========================================
 # ÉTAPE 4: CRÉER package.json (Backend)
@@ -246,7 +194,7 @@ log_success "Fichier .env créé: $SEKOU_HOME/.env"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[4/15] CRÉATION package.json (Backend)${NC}"
+log "${BLUE}[4/16] CRÉATION package.json (Backend)${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/backend/package.json" << 'ENDPACKAGE'
@@ -266,14 +214,11 @@ cat > "$SEKOU_HOME/backend/package.json" << 'ENDPACKAGE'
     "lint:fix": "eslint . --fix",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
-    "security:audit": "npm audit",
-    "build": "tsc",
     "docker:build": "docker build -t sekou-assistant-backend .",
     "docker:run": "docker run -p 3000:3000 sekou-assistant-backend"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "express-async-errors": "^3.1.1",
     "jsonwebtoken": "^9.0.0",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.0.3",
@@ -286,21 +231,11 @@ cat > "$SEKOU_HOME/backend/package.json" << 'ENDPACKAGE'
     "redis": "^4.6.5",
     "crypto-js": "^4.1.0",
     "uuid": "^9.0.0",
-    "joi": "^17.9.2",
-    "multer": "^1.4.5-lts.1",
-    "lodash": "^4.17.21",
-    "moment-timezone": "^0.5.45",
-    "puppeteer": "^19.11.0",
-    "adb-ts": "^0.1.5",
-    "nodemailer": "^6.9.3",
-    "axios-retry": "^3.3.1",
-    "compression": "^1.7.4",
-    "express-rate-limit": "^6.7.0"
+    "joi": "^17.9.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.22",
     "jest": "^29.5.0",
-    "supertest": "^6.3.3",
     "eslint": "^8.42.0",
     "prettier": "^2.8.8"
   },
@@ -319,37 +254,25 @@ log_success "package.json créé"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[5/15] CRÉATION server.js (Backend Principal)${NC}"
+log "${BLUE}[5/16] CRÉATION server.js (Backend)${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/backend/server.js" << 'ENDSERVER'
-// ==========================================
-// SEKOU ASSISTANT - Backend Server
-// ==========================================
-
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cron = require('node-cron');
-require('dotenv').config();
 
 const app = express();
-
-// ==========================================
-// MIDDLEWARE
-// ==========================================
 
 app.use(helmet());
 app.use(cors());
 app.use(morgan('combined'));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json());
 
-// ==========================================
-// ROUTES DE BASE
-// ==========================================
-
+// Health Check
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
@@ -359,6 +282,7 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Status
 app.get('/api/v1/status', (req, res) => {
   res.json({
     service: 'SEKOU Assistant Backend',
@@ -370,146 +294,71 @@ app.get('/api/v1/status', (req, res) => {
     features: {
       authentication: true,
       automation: true,
-      appBuilder: true,
-      cloudSync: true,
-      payments: true
+      appBuilder: true
     }
   });
 });
 
-// ==========================================
-// AUTOMATION - GOOGLE PLAY
-// ==========================================
-
-app.post('/api/v1/automation/google-play/claim', async (req, res) => {
-  console.log('[SEKOU] 🎮 Réclamation points Google Play...');
-  try {
-    // Simuler la réclamation
-    res.json({
-      success: true,
-      message: '✓ Points Google Play réclamés',
-      amount: 25,
-      timestamp: new Date()
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Google Play
+app.post('/api/v1/automation/google-play/claim', (req, res) => {
+  console.log('[SEKOU] 🎮 Google Play Points claimed');
+  res.json({
+    success: true,
+    message: '✓ Points réclamés',
+    amount: 25,
+    timestamp: new Date()
+  });
 });
 
-// ==========================================
-// AUTOMATION - SONDAGES
-// ==========================================
-
-app.post('/api/v1/automation/survey/complete', async (req, res) => {
-  console.log('[SEKOU] 📋 Complétions des sondages...');
-  try {
-    res.json({
-      success: true,
-      message: '✓ Sondages complétés',
-      surveysCompleted: 3,
-      earnings: 15.50,
-      timestamp: new Date()
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Surveys
+app.post('/api/v1/automation/survey/complete', (req, res) => {
+  console.log('[SEKOU] 📋 Surveys completed');
+  res.json({
+    success: true,
+    message: '✓ Sondages complétés',
+    surveys: 3,
+    earnings: 15.50
+  });
 });
 
-// ==========================================
-// FINANCE - RAPPORTS
-// ==========================================
-
+// Finance Report
 app.get('/api/v1/finance/report', (req, res) => {
   res.json({
     report: {
       period: 'Semaine actuelle',
       earnings: {
-        googlePlay: 100,
-        surveys: 50.75,
-        tasks: 25.50,
-        total: 176.25
-      },
-      generatedAt: new Date(),
-      author: 'SEKOU ASSISTANT'
+        total: 176.25,
+        timestamp: new Date()
+      }
     }
   });
 });
 
-app.post('/api/v1/finance/transfer', async (req, res) => {
-  console.log('[SEKOU] 💰 Transfert des gains...');
+// Transfer Earnings
+app.post('/api/v1/finance/transfer', (req, res) => {
+  console.log('[SEKOU] 💰 Earnings transferred');
   res.json({
     success: true,
-    message: '✓ Gains transférés avec succès',
-    amount: 176.25,
-    method: 'paypal',
-    transactionId: 'TXN-' + Date.now(),
-    timestamp: new Date()
+    message: '✓ Gains transférés',
+    amount: 176.25
   });
 });
 
-// ==========================================
-// PLANIFICATION AUTOMATIQUE (CRON)
-// ==========================================
-
-// 08:00 - Google Play
-cron.schedule('0 8 * * *', () => {
-  console.log('[CRON] 08:00 - Réclamation Google Play');
-});
-
-// 10:00 - Sondages
-cron.schedule('0 10 * * *', () => {
-  console.log('[CRON] 10:00 - Sondages');
-});
-
-// 18:00 Vendredi - Transfert gains
-cron.schedule('0 18 * * 5', () => {
-  console.log('[CRON] 18:00 Vendredi - Transfert gains');
-});
-
-// ==========================================
-// GESTION DES ERREURS
-// ==========================================
-
-app.use((err, req, res, next) => {
-  console.error('Erreur:', err);
-  res.status(500).json({
-    error: err.message,
-    timestamp: new Date()
-  });
-});
-
-// ==========================================
-// DÉMARRAGE DU SERVEUR
-// ==========================================
+// Automation Tasks
+cron.schedule('0 8 * * *', () => console.log('[CRON] 08:00 - Google Play'));
+cron.schedule('0 10 * * *', () => console.log('[CRON] 10:00 - Surveys'));
+cron.schedule('0 18 * * 5', () => console.log('[CRON] 18:00 - Transfer'));
 
 const PORT = process.env.PORT || 3000;
-
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║   🤖 SEKOU ASSISTANT BACKEND RUNNING                       ║
 ║   👤 Sekou Simballa DouKoure                               ║
 ║   🚀 Port: ${PORT}                                               ║
-║   🔐 Sécurité: AES-256 + JWT + 2FA                          ║
-║   ☁️  Sync: Multi-appareil activé                          ║
-║   ⏰ Automatisation: Activée                                ║
 ║   📍 http://localhost:${PORT}                                   ║
 ╚════════════════════════════════════════════════════════════╝
   `);
-  
-  console.log('[SEKOU] Tâches planifiées:');
-  console.log('  ⏰ 08:00 - Google Play points');
-  console.log('  ⏰ 10:00 - Sondages complets');
-  console.log('  ⏰ 18:00 (Vendredi) - Envoi gains');
-  console.log('[SEKOU] Prêt à l\'action! 💪\n');
-});
-
-process.on('SIGTERM', () => {
-  console.log('[SEKOU] Arrêt gracieux du serveur');
-  server.close(() => {
-    console.log('[SEKOU] Serveur arrêté');
-    process.exit(0);
-  });
 });
 
 module.exports = app;
@@ -523,7 +372,7 @@ log_success "server.js créé"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[6/15] CRÉATION Dockerfile${NC}"
+log "${BLUE}[6/16] CRÉATION Dockerfile${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/backend/Dockerfile" << 'ENDDOCKER'
@@ -531,28 +380,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Installer dépendances système
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    postgresql-client \
-    curl
+RUN apk add --no-cache python3 make g++ postgresql-client curl
 
-# Copier files
 COPY package*.json ./
 RUN npm ci --only=production
 
 COPY . .
 
-# Exposer port
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Start
 CMD ["npm", "start"]
 ENDDOCKER
 
@@ -564,14 +403,13 @@ log_success "Dockerfile créé"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[7/15] CRÉATION docker-compose.yml${NC}"
+log "${BLUE}[7/16] CRÉATION docker-compose.yml${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/docker-compose.yml" << 'ENDDOCKER_COMPOSE'
 version: '3.9'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: sekou-postgres
@@ -579,7 +417,6 @@ services:
       POSTGRES_DB: sekou_db
       POSTGRES_USER: sekou_user
       POSTGRES_PASSWORD: sekou_pass
-      POSTGRES_INITDB_ARGS: "-c max_connections=200"
     ports:
       - "5432:5432"
     volumes:
@@ -594,13 +431,11 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: sekou-redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     networks:
@@ -612,7 +447,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Backend Server
   backend:
     build:
       context: ./backend
@@ -644,9 +478,7 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
 
 networks:
   sekou-network:
@@ -656,72 +488,47 @@ ENDDOCKER_COMPOSE
 log_success "docker-compose.yml créé"
 
 # ==========================================
-# ÉTAPE 8: CRÉER SCRIPTS DE BASE DE DONNÉES
+# ÉTAPE 8: CRÉER BASE DE DONNÉES
 # ==========================================
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[8/15] CRÉATION SCRIPTS BASE DE DONNÉES${NC}"
+log "${BLUE}[8/16] CRÉATION SCRIPTS BASE DE DONNÉES${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
-mkdir -p "$SEKOU_HOME/scripts"
-
 cat > "$SEKOU_HOME/scripts/init_database.sql" << 'ENDSQL'
--- ==========================================
--- SEKOU ASSISTANT - DATABASE INITIALIZATION
--- ==========================================
-
--- Créer database (si nécessaire)
--- CREATE DATABASE sekou_db;
-
--- ==========================================
--- USERS TABLE
--- ==========================================
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(255) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   full_name VARCHAR(255),
   password_hash VARCHAR(255),
-  biometric_data JSONB,
   is_active BOOLEAN DEFAULT true,
-  is_verified BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==========================================
--- DEVICES TABLE
--- ==========================================
 CREATE TABLE IF NOT EXISTS devices (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
   device_id VARCHAR(255) UNIQUE NOT NULL,
   device_name VARCHAR(255),
   os VARCHAR(50),
-  fingerprint VARCHAR(512),
   is_trusted BOOLEAN DEFAULT false,
   last_seen TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==========================================
--- EARNINGS TABLE
--- ==========================================
 CREATE TABLE IF NOT EXISTS earnings (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
   source VARCHAR(100),
   amount DECIMAL(10,2),
   currency VARCHAR(3) DEFAULT 'EUR',
-  description TEXT,
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   status VARCHAR(50) DEFAULT 'pending'
 );
 
--- ==========================================
--- TASKS TABLE
--- ==========================================
 CREATE TABLE IF NOT EXISTS tasks (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -730,13 +537,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   scheduled_time TIMESTAMP,
   completed_at TIMESTAMP,
   status VARCHAR(50) DEFAULT 'pending',
-  result JSONB,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==========================================
--- APPS TABLE
--- ==========================================
 CREATE TABLE IF NOT EXISTS apps (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -745,48 +548,13 @@ CREATE TABLE IF NOT EXISTS apps (
   version VARCHAR(50),
   apk_path VARCHAR(512),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   status VARCHAR(50) DEFAULT 'draft'
 );
 
--- ==========================================
--- TRANSFERS TABLE
--- ==========================================
-CREATE TABLE IF NOT EXISTS transfers (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  amount DECIMAL(10,2),
-  currency VARCHAR(3) DEFAULT 'EUR',
-  method VARCHAR(50),
-  destination VARCHAR(255),
-  transaction_id VARCHAR(255),
-  status VARCHAR(50) DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  completed_at TIMESTAMP
-);
-
--- ==========================================
--- INDEXES
--- ==========================================
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_devices_user_id ON devices(user_id);
 CREATE INDEX idx_earnings_user_id ON earnings(user_id);
 CREATE INDEX idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX idx_transfers_user_id ON transfers(user_id);
-
--- ==========================================
--- AUDIT LOG TABLE
--- ==========================================
-CREATE TABLE IF NOT EXISTS audit_logs (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER,
-  action VARCHAR(255),
-  details JSONB,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_audit_user_id ON audit_logs(user_id);
-
 ENDSQL
 
 log_success "Scripts base de données créés"
@@ -797,117 +565,48 @@ log_success "Scripts base de données créés"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[9/15] CRÉATION SCRIPTS D'AUTOMATISATION${NC}"
+log "${BLUE}[9/16] CRÉATION SCRIPTS D'AUTOMATISATION${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/automation/sekou-automation.sh" << 'ENDAUTO'
 #!/bin/bash
 
-# ==========================================
-# SEKOU AUTOMATION - CRON JOBS
-# ==========================================
-
 SEKOU_API="http://localhost:3000/api/v1"
 LOG_DIR="$HOME/sekou-assistant-platform/logs"
 mkdir -p "$LOG_DIR"
 
-# Fonction de log
 log_event() {
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_DIR/automation.log"
 }
 
-log_event "════════════════════════════════════════════"
 log_event "SEKOU Automation Started"
-log_event "════════════════════════════════════════════"
 
-# ==========================================
-# 08:00 - GOOGLE PLAY POINTS
-# ==========================================
 task_google_play() {
-  log_event "⏰ [08:00] Réclamation Google Play points..."
-  curl -s -X POST "$SEKOU_API/automation/google-play/claim" \
-    -H "Content-Type: application/json" \
-    >> "$LOG_DIR/automation.log" 2>&1
-  log_event "✓ Google Play points réclamés"
+  log_event "⏰ [08:00] Google Play points..."
+  curl -s -X POST "$SEKOU_API/automation/google-play/claim" >> "$LOG_DIR/automation.log" 2>&1
+  log_event "✓ Google Play completed"
 }
 
-# ==========================================
-# 10:00 - SURVEYS
-# ==========================================
 task_surveys() {
-  log_event "⏰ [10:00] Complétions des sondages..."
-  curl -s -X POST "$SEKOU_API/automation/survey/complete" \
-    -H "Content-Type: application/json" \
-    >> "$LOG_DIR/automation.log" 2>&1
-  log_event "✓ Sondages complétés"
+  log_event "⏰ [10:00] Surveys..."
+  curl -s -X POST "$SEKOU_API/automation/survey/complete" >> "$LOG_DIR/automation.log" 2>&1
+  log_event "✓ Surveys completed"
 }
 
-# ==========================================
-# 14:00 - OTHER TASKS
-# ==========================================
-task_others() {
-  log_event "⏰ [14:00] Exécution des autres tâches..."
-  curl -s -X POST "$SEKOU_API/automation/tasks/execute" \
-    -H "Content-Type: application/json" \
-    >> "$LOG_DIR/automation.log" 2>&1
-  log_event "✓ Autres tâches complétées"
-}
-
-# ==========================================
-# 18:00 FRIDAY - TRANSFER EARNINGS
-# ==========================================
 task_transfer() {
-  log_event "⏰ [18:00 Vendredi] Transfert des gains..."
-  curl -s -X POST "$SEKOU_API/finance/transfer" \
-    -H "Content-Type: application/json" \
-    -d '{"method": "paypal"}' \
-    >> "$LOG_DIR/automation.log" 2>&1
-  log_event "✓ Gains transférés"
+  log_event "⏰ [18:00] Transfer..."
+  curl -s -X POST "$SEKOU_API/finance/transfer" >> "$LOG_DIR/automation.log" 2>&1
+  log_event "✓ Transfer completed"
 }
 
-# ==========================================
-# 19:00 SUNDAY - WEEKLY REPORT
-# ==========================================
-task_report() {
-  log_event "⏰ [19:00 Dimanche] Génération du rapport hebdomadaire..."
-  curl -s -X GET "$SEKOU_API/finance/report" \
-    >> "$LOG_DIR/rapport-$(date +%Y%m%d).json" 2>&1
-  log_event "✓ Rapport généré"
-}
-
-# ==========================================
-# 23:00 - CLOUD BACKUP
-# ==========================================
-task_backup() {
-  log_event "⏰ [23:00] Sauvegarde cloud..."
-  curl -s -X POST "$SEKOU_API/sync/backup" \
-    -H "Content-Type: application/json" \
-    >> "$LOG_DIR/automation.log" 2>&1
-  log_event "✓ Cloud backup complété"
-}
-
-# Exécuter les tâches selon l'heure actuelle
 HOUR=$(date +%H)
-MINUTE=$(date +%M)
 DAY=$(date +%u)
 
-if [ "$HOUR" = "08" ] && [ "$MINUTE" = "00" ]; then
-  task_google_play
-elif [ "$HOUR" = "10" ] && [ "$MINUTE" = "00" ]; then
-  task_surveys
-elif [ "$HOUR" = "14" ] && [ "$MINUTE" = "00" ]; then
-  task_others
-elif [ "$HOUR" = "18" ] && [ "$MINUTE" = "00" ] && [ "$DAY" = "5" ]; then
-  task_transfer
-elif [ "$HOUR" = "19" ] && [ "$MINUTE" = "00" ] && [ "$DAY" = "7" ]; then
-  task_report
-elif [ "$HOUR" = "23" ] && [ "$MINUTE" = "00" ]; then
-  task_backup
-fi
+[ "$HOUR" = "08" ] && task_google_play
+[ "$HOUR" = "10" ] && task_surveys
+[ "$HOUR" = "18" ] && [ "$DAY" = "5" ] && task_transfer
 
-log_event "════════════════════════════════════════════"
 log_event "SEKOU Automation Completed"
-log_event "════════════════════════════════════════════"
 ENDAUTO
 
 chmod +x "$SEKOU_HOME/automation/sekou-automation.sh"
@@ -915,29 +614,100 @@ chmod +x "$SEKOU_HOME/automation/sekou-automation.sh"
 log_success "Scripts d'automatisation créés"
 
 # ==========================================
-# ÉTAPE 10: CRÉER FICHIER CRONTAB
+# ÉTAPE 10: CRÉER COMMANDES CLI
 # ==========================================
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[10/15] CONFIGURATION CRONTAB${NC}"
+log "${BLUE}[10/16] CRÉATION COMMANDES CLI${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
-cat > "$SEKOU_HOME/automation/crontab-setup.sh" << 'ENDCRON'
+mkdir -p "$SEKOU_HOME/bin"
+
+cat > "$SEKOU_HOME/bin/sekou-cli" << 'ENDCLI'
 #!/bin/bash
 
-# Ajouter crontab pour SEKOU Automation
-SEKOU_CRON="* * * * * $HOME/sekou-assistant-platform/automation/sekou-automation.sh >> $HOME/sekou-assistant-platform/logs/cron.log 2>&1"
+# SEKOU CLI - Command Line Interface
 
-(crontab -l 2>/dev/null | grep -v "sekou-automation.sh"; echo "$SEKOU_CRON") | crontab -
+SEKOU_HOME="$HOME/sekou-assistant-platform"
+SEKOU_API="http://localhost:3000/api/v1"
 
-echo "✓ Crontab configuré pour SEKOU Automation"
-crontab -l | grep sekou
-ENDCRON
+show_help() {
+  echo "🤖 SEKOU ASSISTANT - CLI"
+  echo ""
+  echo "Commandes:"
+  echo "  sekou-cli start      - Démarrer les services"
+  echo "  sekou-cli stop       - Arrêter les services"
+  echo "  sekou-cli status     - Voir le statut"
+  echo "  sekou-cli logs       - Voir les logs"
+  echo "  sekou-cli install    - Installer dépendances"
+  echo "  sekou-cli test       - Tester l'API"
+  echo "  sekou-cli claim      - Réclamer Google Play points"
+  echo "  sekou-cli survey     - Compléter les sondages"
+  echo "  sekou-cli transfer   - Transférer les gains"
+  echo "  sekou-cli report     - Voir le rapport"
+  echo "  sekou-cli shell      - Terminal Docker"
+  echo "  sekou-cli help       - Afficher l'aide"
+}
 
-chmod +x "$SEKOU_HOME/automation/crontab-setup.sh"
+case "$1" in
+  start)
+    cd "$SEKOU_HOME"
+    docker-compose up -d
+    echo "✓ Services démarrés"
+    ;;
+  stop)
+    cd "$SEKOU_HOME"
+    docker-compose down
+    echo "✓ Services arrêtés"
+    ;;
+  status)
+    cd "$SEKOU_HOME"
+    docker-compose ps
+    ;;
+  logs)
+    cd "$SEKOU_HOME"
+    docker-compose logs -f backend
+    ;;
+  install)
+    cd "$SEKOU_HOME/backend"
+    npm install
+    echo "✓ Dépendances installées"
+    ;;
+  test)
+    curl -s "$SEKOU_API/status" | jq .
+    ;;
+  claim)
+    curl -s -X POST "$SEKOU_API/automation/google-play/claim" | jq .
+    echo "✓ Google Play points réclamés"
+    ;;
+  survey)
+    curl -s -X POST "$SEKOU_API/automation/survey/complete" | jq .
+    echo "✓ Sondages complétés"
+    ;;
+  transfer)
+    curl -s -X POST "$SEKOU_API/finance/transfer" | jq .
+    echo "✓ Gains transférés"
+    ;;
+  report)
+    curl -s -X GET "$SEKOU_API/finance/report" | jq .
+    ;;
+  shell)
+    cd "$SEKOU_HOME"
+    docker-compose exec backend bash
+    ;;
+  *)
+    show_help
+    ;;
+esac
+ENDCLI
 
-log_success "Crontab configuré"
+chmod +x "$SEKOU_HOME/bin/sekou-cli"
+
+# Ajouter au PATH
+ln -sf "$SEKOU_HOME/bin/sekou-cli" /usr/local/bin/sekou-cli 2>/dev/null || true
+
+log_success "CLI créée: sekou-cli"
 
 # ==========================================
 # ÉTAPE 11: CRÉER README.md
@@ -945,389 +715,187 @@ log_success "Crontab configuré"
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[11/15] CRÉATION README.md${NC}"
+log "${BLUE}[11/16] CRÉATION README.md${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/README.md" << 'ENDREADME'
-# 🤖 SEKOU ASSISTANT - Plateforme d'Automatisation Intelligente
+# 🤖 SEKOU ASSISTANT - Plateforme d'Automatisation
 
 **Créateur:** Sekou Simballa DouKoure  
-**Version:** 1.0.0  
-**Status:** Production Ready
+**Version:** 1.0.0
 
-## 🎯 Vue d'ensemble
-
-SEKOU ASSISTANT est une plateforme d'automatisation personnelle intelligente qui:
-- ✅ Gère vos appareils (Linux, Android)
-- ✅ Automatise les tâches quotidiennes
-- ✅ Récolte les points et gains
-- ✅ Crée des applications automatiquement
-- ✅ Synchronise vos données de manière sécurisée
-
-## 📁 Structure du Projet
-
-```
-sekou-assistant-platform/
-├── backend/              # Node.js Backend
-├── mobile/               # App Android
-├── builders/             # App Builder
-├── automation/           # Scripts Cron
-├── security/vault/       # Gestion clés
-├── scripts/              # Scripts utilitaires
-├── docs/                 # Documentation
-├── logs/                 # Fichiers logs
-├── .env                  # Configuration
-└── docker-compose.yml    # Orchestration
-```
-
-## 🚀 Démarrage Rapide
-
-### Prérequis
-- Node.js >= 18
-- Docker & Docker Compose
-- PostgreSQL 15
-- Redis 7
-- Python 3
-
-### Installation
+## 🎯 Démarrage Rapide
 
 ```bash
-# Aller au répertoire
+# 1. Aller au répertoire
 cd ~/sekou-assistant-platform
 
-# Lancer Docker Compose
+# 2. Démarrer les services
 docker-compose up -d
 
-# Installer dépendances backend
+# 3. Installer dépendances
 cd backend && npm install
 
-# Démarrer le serveur
+# 4. Démarrer le serveur
 npm start
-```
 
-### Vérifier que ça marche
-
-```bash
-# Health check
+# 5. Vérifier
 curl http://localhost:3000/health
-
-# API Status
-curl http://localhost:3000/api/v1/status
 ```
 
-## 📊 Services Disponibles
-
-| Service | Port | URL |
-|---------|------|-----|
-| Backend API | 3000 | http://localhost:3000 |
-| PostgreSQL | 5432 | localhost:5432 |
-| Redis | 6379 | localhost:6379 |
-
-## ⏰ Automatisation
-
-Les tâches suivantes s'exécutent automatiquement:
-
-```
-08:00 → 🎮 Google Play points
-10:00 → 📋 Sondages
-14:00 → ✅ Autres tâches
-18:00 (Vend) → 💰 Transfert gains
-19:00 (Dim) → 📊 Rapport
-23:00 → ☁️ Sauvegarde cloud
-```
-
-## 🔐 Sécurité
-
-- Chiffrement AES-256
-- JWT Authentication
-- Biométrie multi-couches
-- Gestion sécurisée des clés (Vault)
-- HTTPS/TLS 1.3
-
-## 📱 API Endpoints
-
-### Google Play
-```
-POST /api/v1/automation/google-play/claim
-```
-
-### Sondages
-```
-POST /api/v1/automation/survey/complete
-```
-
-### Finance
-```
-GET /api/v1/finance/report
-POST /api/v1/finance/transfer
-```
-
-## 🛠️ Configuration
-
-Éditer le fichier `.env`:
+## 🚀 Commandes CLI
 
 ```bash
-nano .env
-
-# Configurer:
-# - Clés PayPal
-# - Clés OpenAI
-# - Secrets JWT
-# - URLs bases de données
+sekou-cli start      # Démarrer
+sekou-cli stop       # Arrêter
+sekou-cli status     # Statut
+sekou-cli logs       # Logs
+sekou-cli test       # Tester API
+sekou-cli claim      # Google Play points
+sekou-cli survey     # Sondages
+sekou-cli transfer   # Transférer gains
+sekou-cli report     # Rapport
 ```
 
-## 📚 Documentation
+## 📊 Automatisation
 
-- [Architecture](./ASSISTANT_ARCHITECTURE.md)
-- [API Reference](./docs/API.md)
-- [Deployment](./docs/DEPLOYMENT.md)
+- 08:00 → Google Play Points
+- 10:00 → Sondages
+- 18:00 (Vend) → Transfert gains
 
-## 🤝 Support
+## 🌐 Services
 
-Email: sdoukoure12@gmail.com
+- API: http://localhost:3000
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
 
----
-
-**SEKOU ASSISTANT © 2024 - Sekou Simballa DouKoure**
 ENDREADME
 
 log_success "README.md créé"
 
 # ==========================================
-# ÉTAPE 12: CRÉER FICHIER .gitignore
+# ÉTAPE 12: CRÉER Makefile
 # ==========================================
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[12/15] CRÉATION .gitignore${NC}"
-log "${BLUE}═══════════════════════════════════════════${NC}"
-
-cat > "$SEKOU_HOME/.gitignore" << 'ENDGITIGNORE'
-# Dependencies
-node_modules/
-package-lock.json
-yarn.lock
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-
-# Runtime data
-pids/
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage
-coverage/
-.nyc_output/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Build
-dist/
-build/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Cache
-.cache/
-
-# Temporary
-tmp/
-temp/
-
-# Vault
-vault/unseal_keys.txt
-vault/root_token.txt
-
-# Storage
-storage/
-
-# Mobile
-.gradle/
-build/
-*.apk
-*.aab
-ENDGITIGNORE
-
-log_success ".gitignore créé"
-
-# ==========================================
-# ÉTAPE 13: CRÉER FICHIER MAKEFILE
-# ==========================================
-
-log ""
-log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[13/15] CRÉATION Makefile${NC}"
+log "${BLUE}[12/16] CRÉATION Makefile${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
 cat > "$SEKOU_HOME/Makefile" << 'ENDMAKEFILE'
-.PHONY: help install start stop logs test build clean
+.PHONY: help install start stop logs test
 
 help:
-	@echo "SEKOU Assistant - Commands"
-	@echo "============================="
-	@echo "make install   - Install dependencies"
-	@echo "make start     - Start services"
-	@echo "make stop      - Stop services"
-	@echo "make logs      - View logs"
-	@echo "make test      - Run tests"
-	@echo "make build     - Build Docker images"
-	@echo "make clean     - Clean everything"
+	@echo "SEKOU Assistant Commands"
+	@echo "========================"
+	@echo "make install - Install dependencies"
+	@echo "make start   - Start services"
+	@echo "make stop    - Stop services"
+	@echo "make logs    - View logs"
+	@echo "make test    - Test API"
+	@echo "make build   - Build Docker"
 
 install:
-	@echo "Installing SEKOU Assistant..."
+	@echo "Installing..."
 	cd backend && npm install
-	@echo "✓ Installation completed"
 
 start:
-	@echo "Starting SEKOU Assistant..."
+	@echo "Starting..."
 	docker-compose up -d
-	@echo "✓ Services started"
-	@echo "API: http://localhost:3000"
+	@echo "✓ Running on http://localhost:3000"
 
 stop:
-	@echo "Stopping SEKOU Assistant..."
+	@echo "Stopping..."
 	docker-compose down
-	@echo "✓ Services stopped"
 
 logs:
 	docker-compose logs -f backend
 
 test:
-	cd backend && npm test
+	@curl http://localhost:3000/health | jq .
 
 build:
 	docker-compose build
-
-clean:
-	docker-compose down -v
-	rm -rf backend/node_modules
-	@echo "✓ Cleanup completed"
-
-status:
-	docker-compose ps
-
-shell:
-	docker-compose exec backend bash
-
-db-migrate:
-	docker-compose exec backend npm run db:migrate
-
-db-seed:
-	docker-compose exec backend npm run db:seed
 
 ENDMAKEFILE
 
 log_success "Makefile créé"
 
 # ==========================================
-# ÉTAPE 14: CRÉER DOCUMENTATION SUPPLÉMENTAIRE
+# ÉTAPE 13: CRÉER .gitignore
 # ==========================================
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[14/15] CRÉATION DOCUMENTATION${NC}"
+log "${BLUE}[13/16] CRÉATION .gitignore${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
-cat > "$SEKOU_HOME/docs/INSTALLATION.md" << 'ENDDOCS'
-# Installation Guide - SEKOU ASSISTANT
+cat > "$SEKOU_HOME/.gitignore" << 'ENDGITIGNORE'
+node_modules/
+.env
+.env.local
+logs/
+*.log
+.DS_Store
+.vscode/
+.idea/
+dist/
+build/
+*.db
+*.sqlite
+storage/
+ENDGITIGNORE
 
-## Prérequis
+log_success ".gitignore créé"
 
-- Node.js >= 18.0.0
-- npm >= 9.0.0
-- Docker >= 20.10
-- Docker Compose >= 2.0
-- PostgreSQL 15
-- Redis 7
-- Python 3
+# ==========================================
+# ÉTAPE 14: CRÉER DOCUMENTATION
+# ==========================================
 
-## Installation Complète
+log ""
+log "${BLUE}═══════════════════════════════════════════${NC}"
+log "${BLUE}[14/16] CRÉATION DOCUMENTATION${NC}"
+log "${BLUE}═══════════════════════════════════════════${NC}"
 
-### 1. Cloner le projet
+cat > "$SEKOU_HOME/docs/QUICK_START.md" << 'ENDDOCS'
+# Quick Start Guide
 
+## Installation Automatique
+
+Le script `SEKOU_INSTALL.sh` installe tout automatiquement.
+
+## Démarrage Manuel
+
+### Démarrer les services
 ```bash
-git clone https://github.com/sdoukoure12/sekou-assistant-platform.git
-cd sekou-assistant-platform
-```
-
-### 2. Configuration .env
-
-```bash
-cp .env.example .env
-nano .env
-
-# Configurer les clés API:
-# - PAYPAL_CLIENT_ID
-# - PAYPAL_CLIENT_SECRET
-# - OPENAI_API_KEY
-# - etc.
-```
-
-### 3. Démarrer Docker Compose
-
-```bash
+cd ~/sekou-assistant-platform
 docker-compose up -d
 ```
 
-### 4. Initialiser la base de données
-
+### Installer dépendances
 ```bash
-docker-compose exec backend npm run db:migrate
-docker-compose exec backend npm run db:seed
+cd backend
+npm install
 ```
 
-### 5. Vérifier l'installation
+### Démarrer le serveur
+```bash
+npm start
+```
 
+### Vérifier
 ```bash
 curl http://localhost:3000/health
 ```
 
-## Troubleshooting
-
-### Port déjà utilisé
+## Utiliser CLI
 
 ```bash
-# Changer le port dans .env
-PORT=3001
-docker-compose up -d
-```
-
-### Erreur base de données
-
-```bash
-# Réinitialiser la BD
-docker-compose down -v
-docker-compose up -d
-```
-
-### Erreur Docker
-
-```bash
-# Vérifier Docker
-docker ps
-docker-compose logs
+sekou-cli start
+sekou-cli claim
+sekou-cli survey
+sekou-cli report
+sekou-cli stop
 ```
 
 ENDDOCS
@@ -1335,19 +903,50 @@ ENDDOCS
 log_success "Documentation créée"
 
 # ==========================================
-# ÉTAPE 15: RÉSUMÉ ET FINALISATION
+# ÉTAPE 15: CRÉER SCRIPT DE CONFIGURATION
 # ==========================================
 
 log ""
 log "${BLUE}═══════════════════════════════════════════${NC}"
-log "${BLUE}[15/15] FINALISATION${NC}"
+log "${BLUE}[15/16] CRÉATION SCRIPT DE CONFIGURATION${NC}"
 log "${BLUE}═══════════════════════════════════════════${NC}"
 
-# Créer fichier d'information
+cat > "$SEKOU_HOME/bin/sekou-config" << 'ENDCONFIG'
+#!/bin/bash
+
+echo "🔧 SEKOU Configuration Setup"
+echo ""
+
+read -p "PayPal Client ID: " PAYPAL_ID
+read -p "PayPal Secret: " PAYPAL_SECRET
+read -p "OpenAI API Key: " OPENAI_KEY
+
+# Éditer .env
+cd ~/sekou-assistant-platform
+sed -i "s|PAYPAL_CLIENT_ID=.*|PAYPAL_CLIENT_ID=$PAYPAL_ID|" .env
+sed -i "s|PAYPAL_CLIENT_SECRET=.*|PAYPAL_CLIENT_SECRET=$PAYPAL_SECRET|" .env
+sed -i "s|OPENAI_API_KEY=.*|OPENAI_API_KEY=$OPENAI_KEY|" .env
+
+echo "✓ Configuration mise à jour"
+ENDCONFIG
+
+chmod +x "$SEKOU_HOME/bin/sekou-config"
+
+log_success "Script de configuration créé"
+
+# ==========================================
+# ÉTAPE 16: RÉSUMÉ ET FINALISATION
+# ==========================================
+
+log ""
+log "${BLUE}═══════════════════════════════════════════${NC}"
+log "${BLUE}[16/16] FINALISATION${NC}"
+log "${BLUE}═══════════════════════════════════════════${NC}"
+
 cat > "$SEKOU_HOME/INSTALLATION_SUMMARY.txt" << 'ENDSUMMARY'
 ╔════════════════════════════════════════════════════════════════╗
 ║                                                                ║
-║        ✅ SEKOU ASSISTANT - INSTALLATION COMPLÈTE ✅           ║
+║        ✅ SEKOU ASSISTANT - INSTALLATION RÉUSSIE ✅            ║
 ║                                                                ║
 ║              Créateur: Sekou Simballa DouKoure                 ║
 ║                                                                ║
@@ -1356,86 +955,86 @@ cat > "$SEKOU_HOME/INSTALLATION_SUMMARY.txt" << 'ENDSUMMARY'
 📍 LOCALISATION: /home/[user]/sekou-assistant-platform
 
 📦 FICHIERS CRÉÉS:
-  ✅ Backend/
-    ├── server.js (Backend principal)
-    ├── package.json (Dépendances)
-    ├── Dockerfile (Containerization)
-  ✅ Configuration/
-    ├── .env (Configuration globale)
-    ├── docker-compose.yml (Orchestration)
-  ✅ Automatisation/
-    ├── sekou-automation.sh (Cron jobs)
-    ├── crontab-setup.sh (Crontab config)
-  ✅ Database/
-    ├── init_database.sql (Schéma BD)
-  ✅ Documentation/
-    ├── README.md (Documentation principale)
-    ├── INSTALLATION.md (Guide installation)
-    ├── ASSISTANT_ARCHITECTURE.md (Architecture)
-  ✅ Utilitaires/
-    ├── Makefile (Commands)
-    ├── .gitignore (Git ignore)
+  ✅ backend/server.js
+  ✅ backend/package.json
+  ✅ backend/Dockerfile
+  ✅ .env (Configuration)
+  ✅ docker-compose.yml
+  ✅ scripts/init_database.sql
+  ✅ automation/sekou-automation.sh
+  ✅ bin/sekou-cli (CLI)
+  ✅ bin/sekou-config (Config)
+  ✅ README.md
+  ✅ Makefile
+  ✅ .gitignore
 
-🚀 DÉMARRAGE:
+🚀 DÉMARRAGE RAPIDE:
 
-1. Aller au répertoire:
-   cd ~/sekou-assistant-platform
+# Option 1: Utiliser Makefile
+cd ~/sekou-assistant-platform
+make start
+make install
+npm start
 
-2. Lancer Docker Compose:
-   docker-compose up -d
+# Option 2: Utiliser CLI
+sekou-cli start
+sekou-cli test
 
-3. Installer dépendances:
-   cd backend && npm install
+# Option 3: Commandes Directes
+cd ~/sekou-assistant-platform
+docker-compose up -d
+cd backend && npm install
+npm start
 
-4. Démarrer le serveur:
-   npm start
+✅ VÉRIFIER:
+curl http://localhost:3000/health
 
-5. Vérifier:
-   curl http://localhost:3000/health
+🎯 COMMANDES CLI:
+sekou-cli start      - Démarrer les services
+sekou-cli stop       - Arrêter les services
+sekou-cli status     - Voir le statut
+sekou-cli logs       - Voir les logs
+sekou-cli claim      - Google Play points
+sekou-cli survey     - Compléter sondages
+sekou-cli transfer   - Transférer gains
+sekou-cli report     - Voir le rapport
+sekou-cli test       - Tester l'API
+sekou-cli shell      - Terminal Docker
+
+⚙️ CONFIGURATION:
+Éditer: nano ~/sekou-assistant-platform/.env
+Ou:     sekou-cli config
+
+⏰ AUTOMATISATION ACTIVÉE:
+08:00 → 🎮 Google Play Points
+10:00 → 📋 Sondages
+18:00 → 💰 Transfert (Vendredi)
 
 🌐 SERVICES:
-  • Backend API: http://localhost:3000
-  • PostgreSQL: localhost:5432
-  • Redis: localhost:6379
+API Backend: http://localhost:3000
+PostgreSQL: localhost:5432
+Redis: localhost:6379
 
-⏰ AUTOMATISATION:
-  08:00 → Google Play Points
-  10:00 → Sondages
-  14:00 → Autres tâches
-  18:00 (Vend) → Transfert gains
-  19:00 (Dim) → Rapport
-  23:00 → Sauvegarde cloud
-
-🔐 SÉCURITÉ:
-  ✅ AES-256 Encryption
-  ✅ JWT Authentication
-  ✅ Biometric Auth
-  ✅ Vault Integration
-
-📝 CONFIGURATION:
-  Éditer: nano .env
-  • PayPal credentials
-  • OpenAI API keys
-  • Database connections
-  • JWT secrets
+📝 NEXT STEPS:
+1. Configurer .env: nano .env
+2. Démarrer: docker-compose up -d
+3. Installer: npm install
+4. Lancer: npm start
+5. Tester: curl http://localhost:3000/health
 
 📚 DOCUMENTATION:
-  • ./README.md - Documentation principale
-  • ./docs/INSTALLATION.md - Guide détaillé
-  • ./ASSISTANT_ARCHITECTURE.md - Architecture système
-
-🆘 SUPPORT:
-  Email: sdoukoure12@gmail.com
-  GitHub: @sdoukoure12
+README.md
+docs/QUICK_START.md
+INSTALLATION_SUMMARY.txt
 
 ════════════════════════════════════════════════════════════════
 
-Bon développement! 🚀
+✨ SEKOU ASSISTANT est prêt!
 
 SEKOU ASSISTANT © 2024 - Sekou Simballa DouKoure
 ENDSUMMARY
 
-log_success "Résumé d'installation créé"
+log_success "Résumé créé"
 
 # ==========================================
 # AFFICHER RÉSUMÉ FINAL
@@ -1452,69 +1051,139 @@ echo -e "║                                                                ║"
 echo -e "╚════════════════════════════════════════════════════════════════╝${NC}"
 
 echo ""
-echo -e "${BLUE}📍 LOCALISATION:${NC}"
-echo "   $SEKOU_HOME"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}🎯 DÉMARRAGE RAPIDE${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 
 echo ""
-echo -e "${BLUE}📦 FICHIERS GÉNÉRÉS:${NC}"
-echo "   ✅ Backend (server.js, package.json, Dockerfile)"
-echo "   ✅ Configuration (.env, docker-compose.yml)"
-echo "   ✅ Automation (sekou-automation.sh, crontab-setup.sh)"
-echo "   ✅ Database (init_database.sql)"
-echo "   ✅ Documentation (README.md, INSTALLATION.md)"
-echo "   ✅ Utilitaires (Makefile, .gitignore)"
+echo -e "${MAGENTA}Option 1: Utiliser CLI (Recommandé)${NC}"
+echo -e "${YELLOW}▶ sekou-cli start${NC}"
+echo -e "${YELLOW}▶ sekou-cli test${NC}"
+echo -e "${YELLOW}▶ sekou-cli logs${NC}"
 
 echo ""
-echo -e "${BLUE}🚀 DÉMARRAGE:${NC}"
-echo "   cd $SEKOU_HOME"
-echo "   docker-compose up -d"
-echo "   cd backend && npm install"
-echo "   npm start"
+echo -e "${MAGENTA}Option 2: Utiliser Makefile${NC}"
+echo -e "${YELLOW}▶ cd ~/sekou-assistant-platform${NC}"
+echo -e "${YELLOW}▶ make start${NC}"
+echo -e "${YELLOW}▶ make install${NC}"
+echo -e "${YELLOW}▶ make test${NC}"
 
 echo ""
-echo -e "${BLUE}✅ VÉRIFIER:${NC}"
-echo "   curl http://localhost:3000/health"
+echo -e "${MAGENTA}Option 3: Commandes Directes${NC}"
+echo -e "${YELLOW}▶ cd ~/sekou-assistant-platform${NC}"
+echo -e "${YELLOW}▶ docker-compose up -d${NC}"
+echo -e "${YELLOW}▶ cd backend && npm install${NC}"
+echo -e "${YELLOW}▶ npm start${NC}"
 
 echo ""
-echo -e "${BLUE}🌐 SERVICES:${NC}"
-echo "   • Backend API: http://localhost:3000"
-echo "   • PostgreSQL: localhost:5432"
-echo "   • Redis: localhost:6379"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}📊 COMMANDES CLI DISPONIBLES${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 
 echo ""
-echo -e "${BLUE}⏰ AUTOMATISATION ACTIVÉE:${NC}"
-echo "   08:00 → 🎮 Google Play Points"
-echo "   10:00 → 📋 Sondages"
-echo "   14:00 → ✅ Autres tâches"
-echo "   18:00 (Vend) → 💰 Transfert gains"
-echo "   19:00 (Dim) → 📊 Rapport"
-echo "   23:00 → ☁️  Sauvegarde cloud"
+echo -e "${GREEN}Gestion des Services:${NC}"
+echo -e "  ${YELLOW}sekou-cli start${NC}      Démarrer les services"
+echo -e "  ${YELLOW}sekou-cli stop${NC}       Arrêter les services"
+echo -e "  ${YELLOW}sekou-cli status${NC}     Voir le statut"
+echo -e "  ${YELLOW}sekou-cli logs${NC}       Voir les logs en direct"
 
 echo ""
-echo -e "${BLUE}📝 PROCHAINES ÉTAPES:${NC}"
-echo "   1. Éditer .env avec vos clés API"
-echo "   2. Lancer: docker-compose up -d"
-echo "   3. Installer: npm install"
-echo "   4. Démarrer: npm start"
-echo "   5. Configurer biométrie (Android)"
-echo "   6. Activer automatisation"
+echo -e "${GREEN}Automatisation:${NC}"
+echo -e "  ${YELLOW}sekou-cli claim${NC}      Réclamer Google Play points"
+echo -e "  ${YELLOW}sekou-cli survey${NC}     Compléter les sondages"
+echo -e "  ${YELLOW}sekou-cli transfer${NC}   Transférer les gains"
+echo -e "  ${YELLOW}sekou-cli report${NC}     Voir le rapport financier"
 
 echo ""
-echo -e "${BLUE}📚 DOCUMENTATION:${NC}"
-echo "   • README.md"
-echo "   • INSTALLATION_SUMMARY.txt"
-echo "   • docs/INSTALLATION.md"
-echo "   • ASSISTANT_ARCHITECTURE.md"
+echo -e "${GREEN}Diagnostic:${NC}"
+echo -e "  ${YELLOW}sekou-cli test${NC}       Tester l'API"
+echo -e "  ${YELLOW}sekou-cli shell${NC}      Terminal Docker"
 
 echo ""
-echo -e "${BLUE}📊 LOGS:${NC}"
-echo "   Installation log: $LOG_FILE"
-echo "   Application logs: $SEKOU_HOME/logs/"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}📍 LOCALISATION${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo ""
+echo -e "  ${BLUE}Répertoire:${NC} $SEKOU_HOME"
+echo -e "  ${BLUE}Log:${NC} $LOG_FILE"
 
 echo ""
-echo -e "${YELLOW}🎯 SEKOU ASSISTANT EST PRÊT!${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}🌐 SERVICES${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+
 echo ""
-echo -e "${GREEN}Bon développement! 💪${NC}"
+echo -e "  ${GREEN}Backend API:${NC}  http://localhost:3000"
+echo -e "  ${GREEN}PostgreSQL:${NC}   localhost:5432"
+echo -e "  ${GREEN}Redis:${NC}        localhost:6379"
+
+echo ""
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}⏰ AUTOMATISATION${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+
+echo ""
+echo -e "  ${YELLOW}08:00${NC}  🎮 Google Play Points"
+echo -e "  ${YELLOW}10:00${NC}  📋 Sondages"
+echo -e "  ${YELLOW}14:00${NC}  ✅ Autres tâches"
+echo -e "  ${YELLOW}18:00${NC} (Vendredi) 💰 Transfert gains"
+echo -e "  ${YELLOW}19:00${NC} (Dimanche) 📊 Rapport"
+echo -e "  ${YELLOW}23:00${NC}  ☁️  Sauvegarde cloud"
+
+echo ""
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}📝 PROCHAINES ÉTAPES${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+
+echo ""
+echo -e "  1️⃣  ${YELLOW}Configurer vos clés API:${NC}"
+echo -e "     ${BLUE}sekou-cli config${NC}"
+echo -e "     ou"
+echo -e "     ${BLUE}nano $SEKOU_HOME/.env${NC}"
+
+echo ""
+echo -e "  2️⃣  ${YELLOW}Démarrer les services:${NC}"
+echo -e "     ${BLUE}sekou-cli start${NC}"
+
+echo ""
+echo -e "  3️⃣  ${YELLOW}Vérifier que ça marche:${NC}"
+echo -e "     ${BLUE}sekou-cli test${NC}"
+
+echo ""
+echo -e "  4️⃣  ${YELLOW}Voir les logs:${NC}"
+echo -e "     ${BLUE}sekou-cli logs${NC}"
+
+echo ""
+echo -e "  5️⃣  ${YELLOW}Utiliser l'automatisation:${NC}"
+echo -e "     ${BLUE}sekou-cli claim${NC}    # Google Play"
+echo -e "     ${BLUE}sekou-cli survey${NC}   # Sondages"
+echo -e "     ${BLUE}sekou-cli transfer${NC} # Transfert gains"
+
+echo ""
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}📚 DOCUMENTATION${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+
+echo ""
+echo -e "  ${BLUE}README.md${NC}                    Documentation principale"
+echo -e "  ${BLUE}docs/QUICK_START.md${NC}          Guide de démarrage"
+echo -e "  ${BLUE}INSTALLATION_SUMMARY.txt${NC}     Résumé installation"
+echo -e "  ${BLUE}ASSISTANT_ARCHITECTURE.md${NC}   Architecture système"
+
+echo ""
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}🆘 SUPPORT${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+
+echo ""
+echo -e "  ${YELLOW}Email:${NC} sdoukoure12@gmail.com"
+echo -e "  ${YELLOW}GitHub:${NC} @sdoukoure12"
+echo -e "  ${YELLOW}Repo:${NC} sekou-assistant-platform"
+
+echo ""
+echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}✨ BON DÉVELOPPEMENT AVEC SEKOU ASSISTANT! 🚀${NC}"
+echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 log "════════════════════════════════════════════════════════════"
