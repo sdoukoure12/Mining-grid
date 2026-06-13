@@ -1,0 +1,41 @@
+[Unit]
+Description=Mining Grid Game Server
+Documentation=https://github.com/sdoukoure12/Mining-grid
+After=network.target mongod.service
+Wants=mongod.service
+
+[Service]
+Type=simple
+User=mining-grid
+Group=mining-grid
+WorkingDirectory=/opt/mining-grid
+ExecStart=/usr/bin/node server.js
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=5
+
+# Environment
+Environment=NODE_ENV=production
+EnvironmentFile=-/opt/mining-grid/.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mining-grid
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+# Resource limits
+# Note: keep MemoryMax in sync with the memory limit in docker-compose.yml
+LimitNOFILE=65535
+MemoryMax=512M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
