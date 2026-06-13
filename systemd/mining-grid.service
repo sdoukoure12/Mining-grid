@@ -1,0 +1,52 @@
+[Unit]
+Description=Mining-Grid Game Mining Pool Service
+Documentation=https://github.com/sdoukoure12/Mining-grid
+After=network-online.target mongod.service
+Wants=network-online.target
+Requires=mongod.service
+
+[Service]
+Type=simple
+User=mining-grid
+Group=mining-grid
+WorkingDirectory=/opt/mining-grid
+
+# Environment
+EnvironmentFile=-/opt/mining-grid/.env
+Environment=NODE_ENV=production
+
+# Start command
+ExecStart=/usr/bin/node /opt/mining-grid/server.js
+
+# Pre-start: wait for MongoDB to be ready (max 60 seconds)
+ExecStartPre=/bin/bash -c 'i=0; until mongosh --eval "db.adminCommand({ping:1})" --quiet 2>/dev/null; do i=$((i+1)); [ $i -ge 60 ] && exit 1; sleep 1; done'
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=30
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mining-grid
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=512M
+CPUQuota=80%
+TasksMax=128
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

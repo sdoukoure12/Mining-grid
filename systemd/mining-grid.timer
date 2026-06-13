@@ -1,0 +1,15 @@
+[Unit]
+Description=Mining-Grid Periodic Health Check Timer
+Documentation=https://github.com/sdoukoure12/Mining-grid
+
+[Timer]
+# Run every hour
+OnCalendar=hourly
+# Run 5 minutes after boot
+OnBootSec=5min
+# Persist across reboots (catch up if system was off)
+Persistent=true
+Unit=mining-grid-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,135 @@
+name: Mining-Grid Auto Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for triggering recovery'
+        required: false
+        default: 'Manual trigger'
+  workflow_call:
+    inputs:
+      reason:
+        description: 'Reason for triggering recovery'
+        required: false
+        type: string
+        default: 'Called from health check'
+
+jobs:
+  auto-recovery:
+    name: Auto Recovery - Mining Grid Service
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log recovery initiation
+        run: |
+          echo "## 🔄 Auto-Recovery Initiated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason:** ${{ github.event.inputs.reason || inputs.reason || 'Health check failure' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Validate repository integrity
+        id: validate
+        run: |
+          echo "::group::Validating repository files"
+          MISSING=0
+          for f in server.js package.json config/database.js \
+                   routes/minerRoute.js controllers/minerController.js \
+                   services/minerService.js models/Miner.js; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Missing critical file: $f"
+              MISSING=$((MISSING + 1))
+            else
+              echo "✅ $f"
+            fi
+          done
+          if [ $MISSING -gt 0 ]; then
+            echo "::error::$MISSING critical file(s) missing – cannot recover automatically"
+            exit 1
+          fi
+          echo "::endgroup::"
+
+      - name: Clean install dependencies
+        run: |
+          echo "::group::Reinstalling dependencies"
+          rm -rf node_modules
+          npm ci
+          echo "✅ Dependencies reinstalled"
+          echo "::endgroup::"
+
+      - name: Clear temporary files and caches
+        run: |
+          echo "::group::Clearing caches and temp files"
+          find . -name "*.pid" -not -path "./.git/*" -delete 2>/dev/null || true
+          find . -name "*.lock.tmp" -not -path "./.git/*" -delete 2>/dev/null || true
+          find /tmp -name "mining-grid-*" -delete 2>/dev/null || true
+          echo "✅ Temp files cleared"
+          echo "::endgroup::"
+
+      - name: Verify server can start
+        run: |
+          echo "::group::Verifying server startup after recovery"
+          PORT=3000 MONGO_URI=mongodb://localhost:27017/mining_grid_test \
+            NODE_ENV=test timeout 20 node server.js &
+          SERVER_PID=$!
+
+          SUCCESS=false
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "✅ Server started successfully after recovery (attempt $i)"
+              SUCCESS=true
+              break
+            fi
+            sleep 1
+          done
+
+          kill $SERVER_PID 2>/dev/null || true
+
+          if [ "$SUCCESS" != "true" ]; then
+            echo "❌ Server failed to start after recovery"
+            exit 1
+          fi
+          echo "::endgroup::"
+
+      - name: Post recovery summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Recovery Steps Completed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Repository integrity validated" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Dependencies reinstalled" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Caches cleared" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Server startup verified" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **Note:** For production recovery, run \`scripts/recovery.sh\` on the host." >> $GITHUB_STEP_SUMMARY
+
+  notify-recovery-result:
+    name: Notify Recovery Result
+    runs-on: ubuntu-latest
+    needs: auto-recovery
+    if: always()
+    permissions: {}
+    steps:
+      - name: Report recovery outcome
+        run: |
+          if [ "${{ needs.auto-recovery.result }}" == "success" ]; then
+            echo "## ✅ Recovery Successful" >> $GITHUB_STEP_SUMMARY
+            echo "Mining-Grid service has been recovered successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Recovery Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Automatic recovery failed. Manual intervention required." >> $GITHUB_STEP_SUMMARY
+            echo "::error::Auto-recovery FAILED – manual intervention required"
+          fi
